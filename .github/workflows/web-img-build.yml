@@ -1,0 +1,27 @@
+name: Build OpenRW browser asset-loader slice
+on:
+  push:
+    branches: [web-port]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.64'
+      - name: Compile and link original OpenRW IMG loader
+        run: |
+          mkdir -p dist
+          em++ -std=c++17 -O2 -I rwcore web/img_browser.cpp rwcore/loaders/LoaderIMG.cpp -o dist/dreamstate.js \
+            -s WASM=1 -s FORCE_FILESYSTEM=1 -s ALLOW_MEMORY_GROWTH=1 \
+            -s MODULARIZE=1 -s EXPORT_NAME=createDreamstate \
+            -s EXPORTED_FUNCTIONS='["_main","_dreamstate_load_img"]' \
+            -s EXPORTED_RUNTIME_METHODS='["FS","ccall"]'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dreamstate-openrw-wasm-loader
+          path: dist/
