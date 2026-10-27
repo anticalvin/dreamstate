@@ -1,0 +1,44 @@
+name: Build and deploy OpenRW browser loader
+on:
+  push:
+    branches: [web-port]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: dreamstate-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.64'
+      - name: Compile original OpenRW archive loader to WebAssembly
+        run: |
+          em++ -std=c++17 -O2 -I rwcore web/img_browser.cpp rwcore/loaders/LoaderIMG.cpp -o docs/dreamstate.js \
+            -s WASM=1 -s FORCE_FILESYSTEM=1 -s ALLOW_MEMORY_GROWTH=1 \
+            -s MODULARIZE=1 -s EXPORT_NAME=createDreamstate \
+            -s EXPORTED_FUNCTIONS='["_main","_dreamstate_load_img"]' \
+            -s EXPORTED_RUNTIME_METHODS='["FS","ccall"]'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dreamstate-openrw-browser
+          path: docs/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
