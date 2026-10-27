@@ -1,0 +1,19 @@
+name: WebAssembly engine source probe
+on:
+  push:
+    branches: [web-port]
+  workflow_dispatch:
+jobs:
+  wasm-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.64'
+      - name: Compile actual OpenRW loader with Emscripten
+        run: |
+          mkdir -p build/web
+          em++ -std=c++17 -I rwcore -O0 -c rwcore/loaders/LoaderIMG.cpp -o build/web/LoaderIMG.o
+      - name: Record compiler version
+        run: em++ --version
